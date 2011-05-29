@@ -105,7 +105,7 @@ Logs out, logs back in (newlines inserted for readability): ::
     rLi/p+tyLb5JjEQlCvaU28wczgAAAIEAj+JTm+IKWO5mh/fIMpxwFnpdEm/8fcfn
     bgFet9JOge6Y/CEMzkeLhj+tfwo8hFY3Rzhb5T2a1LeOezA/yDMM9NfoZhEi7OFX
     4k4tZl5ZEQ8Bzzx3KTAVRMfGGMApVONcyRGipi9jbzJW6k+F/3oJLtrSIRXV0hYN
-    jQdNxPQHJGc= alice@classroom``
+    jQdNxPQHJGc= alice@classroom
     
 
 Depending on some factors, ``.ssh`` permissions may not allow reading the pub
