@@ -1,15 +1,32 @@
-In my `previous blog post <http://7bits.nl/blog/2011/05/12/on-cve-2010-3435>`_
-I wondered
+===============================================
+ Leveraging a symlink attack to steal DSA keys
+===============================================
 
-    I don't know what the mathematical implications of having the last few
-    bits of a private key are, but it can't be good.
+:Author: Peter van Dijk `peter@7bits.nl <mailto:peter@7bits.nl>`_
+:version: 20110529
 
-As it turns out, for DSA, *quite bad*.
+Introduction
+============
 
-Over a sample of 1000 keys, around 20% of DSA private keys (when encoded in
-DER/PEM form, as is common) end in ``==``. Some of those we still can't read
-because their last line starts with a number; the ``pam_env`` issue requires
-an alphanumeric line (starting with a letter), ending in ``==``. In the end,
+Previous versions of `pam_env` (as shipped with recent Ubuntu and Debian
+releases) have a bug where users can steal data from other users (including
+root) assuming it fits a 'VAR=value' format. This issue is known as
+`CVE-2010-3435
+<http://web.nvd.nist.gov/view/vuln/detail?vulnId=CVE-2010-3435>`_.
+
+As it turns out, `PEM
+<http://en.wikipedia.org/wiki/X.509#Certificate_filename_extensions>`_ (which
+is just base64 `DER
+<http://en.wikipedia.org/wiki/Distinguished_Encoding_Rules>`_) formatted
+cryptography keys can end in a line that ends in ==, and pam_env tolerates
+this format. This means we can steal that line to see if it provides us with
+enough information to reconstruct a full private key.
+
+I've done some research, and it turns out that over a sample of 1000 freshly
+generated DSA keys, around 20% of those (when encoded in DER/PEM
+form, as is common) end in ``==``. Some, we still can't read because
+their last line starts with a number; the ``pam_env`` issue requires an
+alphanumeric line (starting with a letter), ending in ``==``. In the end,
 about 10% of private DSA keys expose their last line to us this way.
 
 Of those keys, 98% leak 16*8=128 bits of the private part
@@ -18,13 +35,16 @@ The private part appears to be around 160 bits long on average.
 
 This report documents a staged attack. It should explain most of the issue.
 
-We make the following assumptions.
-1. we can obtain the public key
+I make the following assumptions.
+
+1. Eve can obtain the public key
 2. the private key is in the 10% that is vulnerable
+3. there is no passphrase on the private key (perhaps she's using them for
+   rsync backups?)
 
 Here follows an example 'conversation' between Alice and Eve. You can find all
 the scripts I wrote in `this Mercurial repository
-<http://7bits.nl/hg/cve-2010-3435-dsa>`_.
+<http://7bits.nl/hg/pamenv-dsakeys>`_.
 
 Alice
 =====
@@ -147,11 +167,11 @@ Reconstruct Alice's private key: ::
 Try logging in with it: ::
 
     eve:~$ ssh -i alice_reconstructed_key alice@localhost
-    Welcome to your Vagrant-built virtual machine!
+    Welcome!
     Last login: Sat May 14 08:17:53 2011 from ::1
     alice:~$
 
-We did it!
+Looks like Eve did it and Alice is in trouble.
 
 Conclusion
 ==========
@@ -163,15 +183,32 @@ have about 32 bits of private key data to guess. This turns out to be entirely
 feasible on modern hardware. In this specific demonstration, 24 cores of a
 recent CPU model needed 6 hours to reconstruct the complete private key.
 
+Assorted notes
+==============
+
+CPU-power to do the reconstruction comes to about $30 at `Amazon EC2
+<http://aws.amazon.com/ec2/>`_ -- entirely feasible for even the cheapest of
+attackers.
+
 Acknowledgements
 ================
 
 I would like to gratefully acknowledge the following people who have
 contributed ideas and helped develop the proof of concept: Christiaan Ottow
 (`Pine Digital Security <http://www.pine.nl/>`_), Job Snijders (`Snijders IT
-<http://www.snijdersit.nl/>`_) and my employer `XLS Hosting
-<http://www.xlshosting.nl>`_.
+<http://snijders-it.nl/>`_), my employer `XLS Hosting
+<http://www.xlshosting.nl>`_, and the fine people of `##crypto
+<http://editthis.info/crypto/>`_ on the `freenode <http://freenode.net/>`_ IRC
+network.
 
 Also, the `PARI computation library <http://pari.math.u-bordeaux.fr/>`_ and
 its `Python interface <http://code.google.com/p/pari-python/>`_ have been
 instrumental in making this happen.
+
+Contact
+=======
+
+You can reach me at `peter@7bits.nl <mailto:peter@7bits.nl>`_ for any
+questions or suggestions.
+
+-- Peter van Dijk

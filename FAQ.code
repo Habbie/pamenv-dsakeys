@@ -1,0 +1,9 @@
+Code FAQ
+========
+
+Q: Can't you cache the result from pari.Mod?
+ A: It turns out you can. The time benefit is about 4%. I recommend you do this ;)
+
+Q: Doesn't Pari have a method for doing the exponentiation?
+ A: pari.Mod returns a pari object, which means exponentation is done by pari too.
+    
