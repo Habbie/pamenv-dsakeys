@@ -113,7 +113,7 @@ file; we're assuming that in general the public key is available.
 
 The ``bSsUBZkPeLhzmQZtCB97Xg==`` bit is most of DSA's private part, ``x``. The
 public key provides all other variables. Let's get to work (newlines inserted
-in numbers for readability): ::
+in numbers for readability, sshpubkey truncated with ``...`` for brevity): ::
 
     eve:~$ ./parse.py AAAA...PQHJGc= bSsUBZkPeLhzmQZtCB97Xg== > data
     eve:~$ cat data
