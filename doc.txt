@@ -3,13 +3,14 @@
 ===============================================
 
 :Author: Peter van Dijk `peter@7bits.nl <mailto:peter@7bits.nl>`_
-:version: 20110529
+:version: 20110530
 
 IMPORTANT
 =========
 
-If you are on Ubuntu: please update libpam-modules now. If you are on Debian:
-please implement the workaround of adding ``user_readenv=0`` to *every*
+If you are on Ubuntu: please update libpam-modules now (see `USN-1140-1
+<http://www.ubuntu.com/usn/usn-1140-1/>`_). If you are on Debian: please
+implement the workaround of adding ``user_readenv=0`` to *every*
 ``pam_env.so`` entry in ``/etc/pam.d``.
 
 If you are on RHEL/CentOS: don't worry -- they fixed this bug last year.
