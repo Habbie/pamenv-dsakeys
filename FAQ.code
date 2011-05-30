@@ -7,3 +7,5 @@ Q: Can't you cache the result from pari.Mod?
 Q: Doesn't Pari have a method for doing the exponentiation?
  A: pari.Mod returns a pari object, which means exponentation is done by pari too.
     
+Q: Could this be done faster with OpenCL, or by instrumenting a `GNFS <http://en.wikipedia.org/wiki/GNFS>`_ with the bits we know?
+ A: I expect so! -- but I did not look in to this. Let me know ;)

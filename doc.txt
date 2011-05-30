@@ -3,7 +3,7 @@
 ===============================================
 
 :Author: Peter van Dijk `peter@7bits.nl <mailto:peter@7bits.nl>`_
-:version: 20110530-2
+:version: 20110530-3
 
 IMPORTANT
 =========
@@ -221,6 +221,11 @@ FAQ
 Q: Is this a weakness in DSA? Should I switch to RSA?
  A: I cannot provide advice on the relative merits of RSA versus DSA, but this article should not
  be considered a reason to drop DSA.
+
+Q: What about RSA?
+ A: RSA private keys contain a bunch of 'secret' variables, where DSA only has one. Also,
+ RSA variables are longer so this attack only lifts about 1/3rd of one of those variables.
+ My impression is that this does not reduce attack time to be feasible. I did not verify this.
 
 Contact
 =======
