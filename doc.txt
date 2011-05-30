@@ -3,7 +3,7 @@
 ===============================================
 
 :Author: Peter van Dijk `peter@7bits.nl <mailto:peter@7bits.nl>`_
-:version: 20110530
+:version: 20110530-2
 
 IMPORTANT
 =========
@@ -214,6 +214,13 @@ network.
 Also, the `PARI computation library <http://pari.math.u-bordeaux.fr/>`_ and
 its `Python interface <http://code.google.com/p/pari-python/>`_ have been
 instrumental in making this happen.
+
+FAQ
+===
+
+Q: Is this a weakness in DSA? Should I switch to RSA?
+ A: I cannot provide advice on the relative merits of RSA versus DSA, but this article should not
+ be considered a reason to drop DSA.
 
 Contact
 =======
