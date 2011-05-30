@@ -3,7 +3,7 @@
 ===============================================
 
 :Author: Peter van Dijk `peter@7bits.nl <mailto:peter@7bits.nl>`_
-:version: 20110530-3
+:version: 20110530-4
 
 IMPORTANT
 =========
@@ -206,7 +206,7 @@ Acknowledgements
 I would like to gratefully acknowledge the following people who have
 contributed ideas and helped develop the proof of concept: Christiaan Ottow
 (`Pine Digital Security <http://www.pine.nl/>`_), Job Snijders (`Snijders IT
-<http://snijders-it.nl/>`_), my employer `XLS Hosting
+<http://snijders-it.nl/>`_), my coworker Pim van Riezen, my employer `XLS Hosting
 <http://www.xlshosting.nl>`_, and the fine people of `##crypto
 <http://editthis.info/crypto/>`_ on the `freenode <http://freenode.net/>`_ IRC
 network.
