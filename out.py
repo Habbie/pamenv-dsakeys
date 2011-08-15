@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import sys, pari
+import sys
 
 from pyasn1.type.univ import Sequence, Integer
 from pyasn1.codec.der import encoder
